@@ -1,0 +1,12 @@
+{
+  "url": "http://localhost:8080",
+  "api": "http://localhost:9080",
+  "auth": {
+    "google": "1024802812897-0f5dlo58dl796pqq9dgvsmaia8412gk1.apps.googleusercontent.com",
+    "facebook": "155390355183047",
+    "twitter": "",
+    "instagram": "",
+    "linkedin": "",
+    "microsoft": ""
+  }
+}
