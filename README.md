@@ -1,6 +1,6 @@
-# e-cow
+# Stock Score
 
-> Tomada de decisões relativas à reprodução de bovinos de corte.
+> Score de análise fundamentalista das ações da Bovespa.
 
 ## Build Setup
 

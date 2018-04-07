@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget android-versionCode="1" id="com.carromeu.stock" ios-CFBundleVersion="1" version="1.18.05" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-    <name>e-cow</name>
-    <description>Tomada de decisões relativas à reprodução de bovinos de corte.</description>
+    <name>stock-score</name>
+    <description>Score de análise fundamentalista das ações da Bovespa.</description>
     <author email="camilo@carromeu.com" href="http://carromeu.com/">
         Camilo Carromeu
     </author>
