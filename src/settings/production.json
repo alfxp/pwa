@@ -1,12 +1,4 @@
 {
-  "url": "https://e-cow.carromeu.com",
-  "api": "https://e-cow.herokuapp.com",
-  "auth": {
-    "google": "1024802812897-0f5dlo58dl796pqq9dgvsmaia8412gk1.apps.googleusercontent.com",
-    "facebook": "155390355183047",
-    "twitter": "",
-    "instagram": "",
-    "linkedin": "",
-    "microsoft": ""
-  }
+  "url": "https://stock.carromeu.com",
+  "api": "https://fundamentus.herokuapp.com"
 }

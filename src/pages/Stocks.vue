@@ -7,14 +7,16 @@
 
     <v-toolbar app clipped-left fixed prominent>
       <v-toolbar-side-icon @click.stop="sidebar = !sidebar" light></v-toolbar-side-icon>
-      <v-toolbar-title v-text="!stocks || stocks.length === 0 ? manifest.name : $route.name"></v-toolbar-title>
-      <v-spacer></v-spacer>
+      <v-toolbar-title v-text="!stocks || stocks.length === 0 ? manifest.name : $route.name" class="hidden-sm-and-down"></v-toolbar-title>
+      <v-spacer class="hidden-sm-and-down"></v-spacer>
 
-      <v-btn outline color="indigo" class="mr-3 ml-0 hidden-sm-and-down" v-if="user && user.authenticated" @click="sync()">
+      <v-text-field append-icon="search" label="Buscar..." single-line hide-details v-model="search" />
+
+      <v-btn outline color="indigo" class="mx-3 ml-0 hidden-sm-and-down" @click="sync()">
         <v-icon left>sync</v-icon>
         Sincronizar
       </v-btn>
-      <v-btn icon class="hidden-md-and-up" v-if="user && user.authenticated" @click="sync()">
+      <v-btn icon class="hidden-md-and-up" @click="sync()">
         <v-icon>sync</v-icon>
       </v-btn>
 
@@ -23,23 +25,35 @@
     <v-content>
 
       <v-card>
-        <v-card-title>
-          Ações
-          <v-spacer></v-spacer>
-          <v-text-field append-icon="search" label="Buscar..." single-line hide-details v-model="search" />
-        </v-card-title>
         <v-data-table
           :headers="headers"
           :items="stocks"
           :search="search"
+          :rows-per-page-items="[50,100,{ 'text': 'Todos', 'value': -1}]"
+          rows-per-page-text="Por página:"
         >
           <template slot="items" slot-scope="props">
             <td>{{ props.item['ticker'] }}</td>
-            <td class="text-xs-center">{{ props.item['cotacao'] }}</td>
-            <td class="text-xs-center">{{ props.item['DY'] }}</td>
-            <td class="text-xs-center">{{ props.item['P/VP'] }}</td>
-            <td class="text-xs-center">{{ props.item['Div.Brut/Pat.'] }}</td>
-            <td class="text-xs-center">{{ props.item['EBITDA'] }}</td>
+            <td class="text-xs-center" style="font-weight: bold; color: #FFF;" :style="props.item['score'] > 7 ? 'background-color: #1B5E20;' : 'background-color: #E53935;'">{{ props.item['score'] }}</td>
+            <td class="text-xs-center">{{ props.item['cotacao'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['DY'] > 2.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['DY'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['P/VP'] < 2 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/VP'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Cresc.5a'] > 5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Cresc.5a'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Div.Brut/Pat.'] < 0.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Div.Brut/Pat.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['EBITDA'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['EV/EBIT'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['ROE'] > 20 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['ROE'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['ROIC'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['Liq.2m.'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Liq.Corr.'] > 1.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Liq.Corr.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['Mrg.Liq.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/Ativ.Circ.Liq.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/Ativo'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/Cap.Giro'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/EBIT'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['P/L'] < 15 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/L'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['PSR'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Pat.Liq'] > 2000 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Pat.Liq'] | formatNumber }}</td>
           </template>
           <v-alert slot="no-results" :value="true" color="error" icon="warning">
             Sua busca por "{{ search }}" não retornou resultados.
@@ -69,16 +83,16 @@
 
 <script>
 import manifest from '../../static/manifest.json'
-// import { uuid } from 'vue-idb'
 import moment from 'moment'
-// import axios from 'axios'
-// import timestamp from 'unix-timestamp'
+import axios from 'axios'
+import timestamp from 'unix-timestamp'
+import numeral from 'numeral'
 
 import MenuWrapper from '../components/Menu.vue'
 import ConfirmWrapper from '../components/Confirm.vue'
 import MessageWrapper from '../components/Message.vue'
 
-// var settings = require('../settings/' + process.env.NODE_ENV + '.json')
+var settings = require('../settings/' + process.env.NODE_ENV + '.json')
 
 export default {
   components: {
@@ -95,170 +109,30 @@ export default {
         delete: false
       },
       valid: false,
-      stocks: [
-        {
-          'ticker': 'AALR3',
-          'Cresc.5a': '13,29%',
-          'DY': '0,00%',
-          'Div.Brut/Pat.': '0,49',
-          'EBITDA': '9,76%',
-          'EV/EBIT': '22,26',
-          'Liq.2m.': '2.432.290,00',
-          'Liq.Corr.': '1,11',
-          'Mrg.Liq.': '1,36%',
-          'P/Ativ.Circ.Liq.': '-2,99',
-          'P/Ativo': '0,802',
-          'P/Cap.Giro': '46,42',
-          'P/EBIT': '17,44',
-          'P/L': '275,64',
-          'P/VP': '1,50',
-          'PSR': '1,701',
-          'Pat.Liq': '1.219.460.000,00',
-          'ROE': '0,55%',
-          'ROIC': '4,96%',
-          'cotacao': '15,50'
-        },
-        {
-          'ticker': 'ABCB4',
-          'Cresc.5a': '18,48%',
-          'DY': '5,62%',
-          'Div.Brut/Pat.': '0,00',
-          'EBITDA': '0,00%',
-          'EV/EBIT': '0,00',
-          'Liq.2m.': '7.353.580,00',
-          'Liq.Corr.': '0,00',
-          'Mrg.Liq.': '0,00%',
-          'P/Ativ.Circ.Liq.': '0,00',
-          'P/Ativo': '0,000',
-          'P/Cap.Giro': '0,00',
-          'P/EBIT': '0,00',
-          'P/L': '8,92',
-          'P/VP': '1,14',
-          'PSR': '0,000',
-          'Pat.Liq': '3.284.330.000,00',
-          'ROE': '12,75%',
-          'ROIC': '0,00%',
-          'cotacao': '18,35'
-        },
-        {
-          'ticker': 'ABEV3',
-          'Cresc.5a': '8,54%',
-          'DY': '2,25%',
-          'Div.Brut/Pat.': '0,06',
-          'EBITDA': '31,98%',
-          'EV/EBIT': '24,15',
-          'Liq.2m.': '343.963.000,00',
-          'Liq.Corr.': '0,86',
-          'Mrg.Liq.': '16,39%',
-          'P/Ativ.Circ.Liq.': '-26,70',
-          'P/Ativo': '4,350',
-          'P/Cap.Giro': '-95,15',
-          'P/EBIT': '24,66',
-          'P/L': '51,53',
-          'P/VP': '8,21',
-          'PSR': '7,887',
-          'Pat.Liq': '46.008.800.000,00',
-          'ROE': '15,94%',
-          'ROIC': '23,19%',
-          'cotacao': '24,03'
-        },
-        {
-          'ticker': 'ADHM3',
-          'Cresc.5a': '0,00%',
-          'DY': '0,00%',
-          'Div.Brut/Pat.': '0,00',
-          'EBITDA': '-26.594,40%',
-          'EV/EBIT': '-2,70',
-          'Liq.2m.': '15.669,00',
-          'Liq.Corr.': '0,05',
-          'Mrg.Liq.': '-30.061,10%',
-          'P/Ativ.Circ.Liq.': '-1,15',
-          'P/Ativo': '5,431',
-          'P/Cap.Giro': '-1,73',
-          'P/EBIT': '-2,73',
-          'P/L': '-2,42',
-          'P/VP': '-1,40',
-          'PSR': '726,888',
-          'Pat.Liq': '-9.328.000,00',
-          'ROE': '58,01%',
-          'ROIC': '-386,99%',
-          'cotacao': '1,73'
-        },
-        {
-          'ticker': 'AELP3',
-          'Cresc.5a': '13,13%',
-          'DY': '0,00%',
-          'Div.Brut/Pat.': '0,00',
-          'EBITDA': '0,00%',
-          'EV/EBIT': '-219,71',
-          'Liq.2m.': '10.550,10',
-          'Liq.Corr.': '0,93',
-          'Mrg.Liq.': '0,00%',
-          'P/Ativ.Circ.Liq.': '-8,57',
-          'P/Ativo': '5,992',
-          'P/Cap.Giro': '-250,22',
-          'P/EBIT': '-230,16',
-          'P/L': '1.342,10',
-          'P/VP': '-281,20',
-          'PSR': '0,000',
-          'Pat.Liq': '-735.000,00',
-          'ROE': '-20,95%',
-          'ROIC': '-3,58%',
-          'cotacao': '2,20'
-        },
-        {
-          'ticker': 'AFLT3',
-          'Cresc.5a': '-12,27%',
-          'DY': '10,17%',
-          'Div.Brut/Pat.': '0,06',
-          'EBITDA': '53,57%',
-          'EV/EBIT': '33,58',
-          'Liq.2m.': '1.743,10',
-          'Liq.Corr.': '21,59',
-          'Mrg.Liq.': '52,94%',
-          'P/Ativ.Circ.Liq.': '10,22',
-          'P/Ativo': '8,060',
-          'P/Cap.Giro': '8,72',
-          'P/EBIT': '34,86',
-          'P/L': '35,28',
-          'P/VP': '9,83',
-          'PSR': '18,675',
-          'Pat.Liq': '44.935.000,00',
-          'ROE': '27,86%',
-          'ROIC': '35,97%',
-          'cotacao': '7,00'
-        },
-        {
-          'ticker': 'AGRO3',
-          'Cresc.5a': '-5,99%',
-          'DY': '1,84%',
-          'Div.Brut/Pat.': '0,24',
-          'EBITDA': '21,98%',
-          'EV/EBIT': '19,35',
-          'Liq.2m.': '626.827,00',
-          'Liq.Corr.': '1,44',
-          'Mrg.Liq.': '16,63%',
-          'P/Ativ.Circ.Liq.': '-43,35',
-          'P/Ativo': '0,810',
-          'P/Cap.Giro': '11,59',
-          'P/EBIT': '16,20',
-          'P/L': '21,42',
-          'P/VP': '1,07',
-          'PSR': '3,561',
-          'Pat.Liq': '693.770.000,00',
-          'ROE': '5,02%',
-          'ROIC': '5,33%',
-          'cotacao': '13,10'
-        }
-      ],
       search: '',
+      stocks: [],
       headers: [
-        { text: 'Ação', align: 'left', sortable: false, value: 'ticker' },
-        { text: 'Cotação', align: 'center', value: 'cotacao' },
-        { text: 'Dividend Yield', align: 'center', value: 'DY' },
+        { text: 'Papel', align: 'left', sortable: false, value: 'ticker' },
+        { text: 'Score', align: 'center', value: 'score' },
+        { text: 'Cotação (R$)', align: 'center', value: 'cotacao' },
+        { text: 'Dividend Yield (%)', align: 'center', value: 'DY' },
         { text: 'P/VPA', align: 'center', value: 'P/VP' },
-        { text: 'Div.Brut/Pat.', align: 'center', value: 'Div.Brut/Pat.' },
-        { text: 'EBITDA', align: 'center', value: 'EBITDA' }
+        { text: 'Cr. 5 anos (%)', align: 'center', value: 'Cresc.5a' },
+        { text: 'Div. Bruta/Patr.', align: 'center', value: 'Div.Brut/Pat.' },
+        { text: 'EBITDA (%)', align: 'center', value: 'EBITDA' },
+        { text: 'EV/EBIT', align: 'center', value: 'EV/EBIT' },
+        { text: 'ROE', align: 'center', value: 'ROE' },
+        { text: 'ROIC', align: 'center', value: 'ROIC' },
+        { text: 'Liq.2m.', align: 'center', value: 'Liq.2m.' },
+        { text: 'Liq.Corr.', align: 'center', value: 'Liq.Corr.' },
+        { text: 'Mrg.Liq.', align: 'center', value: 'Mrg.Liq.' },
+        { text: 'P/Ativ.Circ.Liq.', align: 'center', value: 'P/Ativ.Circ.Liq.' },
+        { text: 'P/Ativo', align: 'center', value: 'P/Ativo' },
+        { text: 'P/Cap.Giro', align: 'center', value: 'P/Cap.Giro' },
+        { text: 'P/EBIT', align: 'center', value: 'P/EBIT' },
+        { text: 'P/L', align: 'center', value: 'P/L' },
+        { text: 'PSR', align: 'center', value: 'PSR' },
+        { text: 'Patr. Líquido', align: 'center', value: 'Pat.Liq' }
       ]
     }
   },
@@ -271,12 +145,11 @@ export default {
   },
   methods: {
     refresh () {
-      this.$db.stocks
-        .where('active').equals(1)
+      this.$db.stock
+        .where('active').equals(1).toArray()
         .then(stocks => { this.stocks = stocks })
     },
     sync () {
-      /*
       this.wait = true
 
       var self = this
@@ -295,79 +168,79 @@ export default {
 
       var now = timestamp.now()
 
-      var ts = this.$localStorage.get('synchronized')
-
-      var lastSync = timestamp.toDate(ts)
-
       self.progress = 5
 
       console.log('#1 - Trying to connect in remote server.')
 
-      axios.get(settings.api + '/status', { timeout: 2000 }).then(function (response) {
-        self.progress = 15
+      axios.head(settings.api, { timeout: 10000, withCredentials: false }).then(function (response) {
+        self.progress = 20
 
-        console.log('#2 - Getting from local DB all items edited from last sync: ' + lastSync)
+        console.log('#2 - Trying to get all stocks exchangers.')
 
-        self.$db.simulation
-          .where('changed').above(lastSync).toArray()
-          .then(simulations => {
-            let promises = []
+        axios.get(settings.api + '/').then((response) => {
+          self.progress = 60
 
-            simulations.forEach(s => {
-              promises.push(axios.post(settings.api + '/simulation', s, { headers: { Authorization: 'Bearer ' + self.user.token } }))
+          var items = response.data
+
+          var tickers = Object.keys(items)
+
+          console.log('#3 - Saving all items getted from server.')
+
+          var toNumber = function (str) {
+            str = str.toString().replace(/[^\d,.-]/g, '')
+            str = str.toString().replace('.', '')
+            str = str.toString().replace(',', '.')
+
+            return parseFloat(str)
+          }
+
+          self.$db.transaction('rw', self.$db.stock, () => {
+            tickers.forEach(t => {
+              var item = items[t]
+
+              for (var p in item) {
+                if (item.hasOwnProperty(p)) {
+                  item[p] = toNumber(item[p])
+                }
+              }
+
+              item.ticker = t
+              item.active = 1
+
+              var score = 0
+
+              score += item['Pat.Liq'] > 2000 ? 1 : 0
+              score += item['Liq.Corr.'] > 1.5 ? 1 : 0
+              score += item['Div.Brut/Pat.'] < 0.5 ? 1 : 0
+              score += item['DY'] > 2.5 ? 1 : 0
+              score += item['Cresc.5a'] > 5 ? 1 : 0
+              score += item['ROE'] > 20 ? 1 : 0
+              score += item['P/VP'] < 2 ? 1 : 0
+              score += item['P/L'] < 15 ? 1 : 0
+              score += item['P/L'] * item['P/VP'] < 22.5 ? 1 : 0
+
+              item.score = score
+
+              self.$db.stock.put(item)
             })
+          }).then(result => {
+            console.log('#4 - All done! Updating control variables: ' + timestamp.toDate(now))
 
-            console.log('#3 - Sending all items edited from last sync: ' + promises.length)
+            self.$localStorage.set('synchronized', now)
 
-            axios.all(promises).then(function (results) {
-              results.forEach(r => {
-                console.log(r.data)
-              })
+            self.$root.$data.trySync = false
 
-              self.progress = 50
+            self.progress = 100
 
-              console.log('#4 - Geting all items in server from last sync. Last sync in timestamp: ' + timestamp.fromDate(lastSync))
+            self.refresh()
 
-              axios.get(settings.api + '/simulations/' + timestamp.fromDate(lastSync), { headers: { Authorization: 'Bearer ' + self.user.token } }).then((response) => {
-                self.progress = 80
+            setTimeout(function () {
+              self.wait = false
 
-                var items = response.data
-
-                items.forEach(i => {
-                  console.log('Getted: ' + i.code + '!')
-                })
-
-                console.log('#5 - Saving all items getted from server and deleting inactivated items.')
-
-                self.$db.transaction('rw', self.$db.simulation, () => {
-                  items.forEach(d => {
-                    d.created = new Date(d.created)
-                    d.changed = new Date(d.changed)
-
-                    self.$db.simulation.put(d)
-                  })
-
-                  self.$db.simulation.where('active').equals(0).delete()
-                }).then(result => {
-                  console.log('#6 - All done! Updating control variables: ' + timestamp.toDate(now))
-
-                  self.$localStorage.set('synchronized', now)
-
-                  self.$root.$data.trySync = false
-
-                  self.progress = 100
-
-                  self.refresh()
-
-                  setTimeout(function () {
-                    self.wait = false
-
-                    self.$refs.message.open('Sincronização realizada com sucesso!', 'success')
-                  }, 1000)
-                }).catch(err)
-              }).catch(err)
-            }).catch(err)
+              self.$refs.message.open('Sincronização realizada com sucesso!', 'success')
+            }, 1000)
           }).catch(err)
+        }).catch(err)
       }).catch(error => {
         console.log(error)
 
@@ -379,7 +252,6 @@ export default {
 
         self.$refs.message.open('Atenção! O servidor remoto parece estar indisponível para sincronização dos dados. Por favor, verifique sua conexão com a internet ou tente novamente mais tarde.', 'yellow darken-3', 6000)
       })
-      */
     },
     hide (stock) {
       /*
@@ -408,6 +280,9 @@ export default {
       if (!value) return ''
 
       return moment(value).format('D/M/YY HH:mm')
+    },
+    formatNumber: function (value) {
+      return numeral(value).format('0.0')
     }
   }
 }

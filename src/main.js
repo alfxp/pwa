@@ -7,7 +7,13 @@ import 'vuetify/dist/vuetify.css'
 import App from './App'
 import router from './router'
 
-Vue.use(Vuetify)
+Vue.use(Vuetify, {
+  theme: {
+    primary: '#0085AF',
+    secondary: '#FFBB00'
+  }
+})
+
 Vue.config.productionTip = false
 
 import storage from 'vue-localstorage'
