@@ -3,6 +3,7 @@ import Router from 'vue-router'
 
 const options = [
   { path: '/', component: 'Stocks', name: 'Ações', props: false },
+  { path: '/help', component: 'Help', name: 'Ajuda', props: false },
   { path: '/settings', component: 'Settings', name: 'Configurações', props: false },
   { path: '/about', component: 'About', name: 'Sobre', props: false }
 ]

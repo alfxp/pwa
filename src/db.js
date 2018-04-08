@@ -8,6 +8,6 @@ export default new VueIdb({
   version: 1,
   database: 'stock-exchange',
   schemas: [
-    { stock: 'ticker, active' }
+    { stock: 'ticker, score, active' }
   ]
 })

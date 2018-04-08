@@ -2,7 +2,7 @@
   <v-app light>
 
     <v-navigation-drawer fixed clipped v-model="sidebar" app>
-      <menu-wrapper @sync="sync"></menu-wrapper>
+      <menu-wrapper @sync="sync" v-bind:synchronized="synchronized"></menu-wrapper>
     </v-navigation-drawer>
 
     <v-toolbar app clipped-left fixed prominent>
@@ -24,57 +24,70 @@
 
     <v-content>
 
-      <v-card>
-        <v-data-table
-          :headers="headers"
-          :items="stocks"
-          :search="search"
-          :rows-per-page-items="[50,100,{ 'text': 'Todos', 'value': -1}]"
-          rows-per-page-text="Por página:"
-        >
-          <template slot="items" slot-scope="props">
-            <td>{{ props.item['ticker'] }}</td>
-            <td class="text-xs-center" style="font-weight: bold; color: #FFF;" :style="props.item['score'] > 7 ? 'background-color: #1B5E20;' : 'background-color: #E53935;'">{{ props.item['score'] }}</td>
-            <td class="text-xs-center">{{ props.item['cotacao'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['DY'] > 2.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['DY'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['P/VP'] < 2 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/VP'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['Cresc.5a'] > 5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Cresc.5a'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['Div.Brut/Pat.'] < 0.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Div.Brut/Pat.'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['EBITDA'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['EV/EBIT'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['ROE'] > 20 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['ROE'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['ROIC'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['Liq.2m.'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['Liq.Corr.'] > 1.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Liq.Corr.'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['Mrg.Liq.'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['P/Ativ.Circ.Liq.'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['P/Ativo'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['P/Cap.Giro'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['P/EBIT'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['P/L'] < 15 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/L'] | formatNumber }}</td>
-            <td class="text-xs-center">{{ props.item['PSR'] | formatNumber }}</td>
-            <td class="text-xs-center" :style="props.item['Pat.Liq'] > 2000 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Pat.Liq'] | formatNumber }}</td>
-          </template>
-          <v-alert slot="no-results" :value="true" color="error" icon="warning">
-            Sua busca por "{{ search }}" não retornou resultados.
-          </v-alert>
-        </v-data-table>
-      </v-card>
+      </v-container>
 
-      <confirm-wrapper ref="confirm" />
-
-      <message-wrapper ref="message" />
-
-      <v-dialog v-model="wait" persistent max-width="300px">
         <v-card>
-          <v-card-text style="text-align: center;">
-            <v-progress-circular :size="100" :width="15" :rotate="360" :value="progress" color="teal">
-              {{ progress }}%
-            </v-progress-circular>
-          </v-card-text>
-          <v-card-title class="headline" block style="text-align: center;">Sincronizando... por favor, aguarde!</v-card-title>
+          <v-data-table
+            :disable-initial-sort="true"
+            :must-sort="true"
+            :headers="headers"
+            :items="stocks"
+            :search="search"
+            :rows-per-page-items="[50,100,{ 'text': 'Todos', 'value': -1}]"
+            item-key="ticker"
+            rows-per-page-text="Por página:"
+            no-data-text="Os dados não foram carregados!"
+          >
+            <template slot="items" slot-scope="props">
+              <td>{{ props.item['ticker'] }}</td>
+              <td class="justify-center layout px-0">
+                <v-btn icon @click="fundamentus(props.item)">
+                  <v-icon color="teal">link</v-icon>
+                </v-btn>
+              </td>
+              <td class="text-xs-center" style="font-weight: bold; color: #FFF;" :style="props.item['score'] > 7 ? 'background-color: #1B5E20;' : (props.item['score'] < 6 ? 'background-color: #E53935;' : 'background-color: #F9A825')">{{ props.item['score'] }}</td>
+              <td class="text-xs-center">{{ props.item['cotacao'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['DY'] > 2.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['DY'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['P/VP'] < 2 && props.item['P/VP'] > 0.75 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/VP'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['Cresc.5a'] > 5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Cresc.5a'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['Div.Brut/Pat.'] < 0.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Div.Brut/Pat.'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['EBITDA'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['EV/EBIT'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['ROE'] > 20 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['ROE'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['ROIC'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['Liq.2m.'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['Liq.Corr.'] > 1.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Liq.Corr.'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['Mrg.Liq.'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['P/Ativ.Circ.Liq.'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['P/Ativo'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['P/Cap.Giro'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['P/EBIT'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['P/L'] < 15 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/L'] | formatNumber }}</td>
+              <td class="text-xs-center">{{ props.item['PSR'] | formatNumber }}</td>
+              <td class="text-xs-center" :style="props.item['Pat.Liq'] > 2000 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Pat.Liq'] | formatNumber }}</td>
+            </template>
+            <v-alert slot="no-results" :value="true" color="error" icon="warning">
+              Sua busca por "{{ search }}" não retornou resultados.
+            </v-alert>
+          </v-data-table>
         </v-card>
-      </v-dialog>
+
+        <confirm-wrapper ref="confirm" />
+
+        <message-wrapper ref="message" />
+
+        <v-dialog v-model="wait" persistent max-width="300px">
+          <v-card>
+            <v-card-text style="text-align: center;">
+              <v-progress-circular :size="100" :width="15" :rotate="360" :value="progress" color="teal">
+                {{ progress }}%
+              </v-progress-circular>
+            </v-card-text>
+            <v-card-title class="headline" block style="text-align: center;">Sincronizando... por favor, aguarde!</v-card-title>
+          </v-card>
+        </v-dialog>
+
+      </v-container>
 
     </v-content>
 
@@ -113,27 +126,29 @@ export default {
       stocks: [],
       headers: [
         { text: 'Papel', align: 'left', sortable: false, value: 'ticker' },
+        { text: '', value: 'actions', sortable: false },
         { text: 'Score', align: 'center', value: 'score' },
         { text: 'Cotação (R$)', align: 'center', value: 'cotacao' },
         { text: 'Dividend Yield (%)', align: 'center', value: 'DY' },
         { text: 'P/VPA', align: 'center', value: 'P/VP' },
-        { text: 'Cr. 5 anos (%)', align: 'center', value: 'Cresc.5a' },
-        { text: 'Div. Bruta/Patr.', align: 'center', value: 'Div.Brut/Pat.' },
+        { text: 'Cresc. 5 anos (%)', align: 'center', value: 'Cresc.5a' },
+        { text: 'Dív. Bruta/Patr.', align: 'center', value: 'Div.Brut/Pat.' },
         { text: 'EBITDA (%)', align: 'center', value: 'EBITDA' },
         { text: 'EV/EBIT', align: 'center', value: 'EV/EBIT' },
-        { text: 'ROE', align: 'center', value: 'ROE' },
-        { text: 'ROIC', align: 'center', value: 'ROIC' },
-        { text: 'Liq.2m.', align: 'center', value: 'Liq.2m.' },
-        { text: 'Liq.Corr.', align: 'center', value: 'Liq.Corr.' },
-        { text: 'Mrg.Liq.', align: 'center', value: 'Mrg.Liq.' },
-        { text: 'P/Ativ.Circ.Liq.', align: 'center', value: 'P/Ativ.Circ.Liq.' },
+        { text: 'ROE (%)', align: 'center', value: 'ROE' },
+        { text: 'ROIC (%)', align: 'center', value: 'ROIC' },
+        { text: 'Vol. $ méd. em 2 meses (R$)', align: 'center', value: 'Liq.2m.' },
+        { text: 'Líquidez Corr.', align: 'center', value: 'Liq.Corr.' },
+        { text: 'Marg. Líq. (%)', align: 'center', value: 'Mrg.Liq.' },
+        { text: 'P/Ativ. Círc. Líq.', align: 'center', value: 'P/Ativ.Circ.Liq.' },
         { text: 'P/Ativo', align: 'center', value: 'P/Ativo' },
-        { text: 'P/Cap.Giro', align: 'center', value: 'P/Cap.Giro' },
+        { text: 'P/Cap. Giro', align: 'center', value: 'P/Cap.Giro' },
         { text: 'P/EBIT', align: 'center', value: 'P/EBIT' },
         { text: 'P/L', align: 'center', value: 'P/L' },
         { text: 'PSR', align: 'center', value: 'PSR' },
-        { text: 'Patr. Líquido', align: 'center', value: 'Pat.Liq' }
-      ]
+        { text: 'Patr. Líquido (R$)', align: 'center', value: 'Pat.Liq' }
+      ],
+      synchronized: 0
     }
   },
   mounted () {
@@ -142,11 +157,14 @@ export default {
     } else {
       this.sync()
     }
+
+    this.synchronized = this.$localStorage.get('synchronized')
   },
   methods: {
     refresh () {
       this.$db.stock
-        .where('active').equals(1).toArray()
+        .where('active').equals(1)
+        .reverse().sortBy('score')
         .then(stocks => { this.stocks = stocks })
     },
     sync () {
@@ -215,9 +233,13 @@ export default {
               score += item['DY'] > 2.5 ? 1 : 0
               score += item['Cresc.5a'] > 5 ? 1 : 0
               score += item['ROE'] > 20 ? 1 : 0
-              score += item['P/VP'] < 2 ? 1 : 0
+              score += item['P/VP'] < 2 && item['P/VP'] > 0.75 ? 1 : 0
               score += item['P/L'] < 15 ? 1 : 0
               score += item['P/L'] * item['P/VP'] < 22.5 ? 1 : 0
+
+              if (item['Liq.Corr.'] === 0) {
+                score = 0
+              }
 
               item.score = score
 
@@ -227,6 +249,8 @@ export default {
             console.log('#4 - All done! Updating control variables: ' + timestamp.toDate(now))
 
             self.$localStorage.set('synchronized', now)
+
+            self.synchronized = now
 
             self.$root.$data.trySync = false
 
@@ -273,6 +297,9 @@ export default {
           }
         })
       */
+    },
+    fundamentus (stock) {
+      window.location = 'http://www.fundamentus.com.br/detalhes.php?papel=' + stock.ticker
     }
   },
   filters: {
