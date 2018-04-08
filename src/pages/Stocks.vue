@@ -12,7 +12,17 @@
 
       <v-text-field append-icon="search" label="Buscar..." single-line hide-details v-model="search" />
 
-      <v-btn outline color="indigo" class="mx-3 ml-0 hidden-sm-and-down" @click="sync()">
+      <v-btn outline color="orange" class="ml-3 hidden-sm-and-down" @click="favourites()">
+        <v-icon left v-if="starred">star</v-icon>
+        <v-icon left v-if="!starred">star_border</v-icon>
+        Favoritos
+      </v-btn>
+      <v-btn icon class="hidden-md-and-up" @click="favourites()">
+        <v-icon v-if="starred">star</v-icon>
+        <v-icon v-if="!starred">star_border</v-icon>
+      </v-btn>
+
+      <v-btn outline color="indigo" class="mr-3 hidden-sm-and-down" @click="sync()">
         <v-icon left>sync</v-icon>
         Sincronizar
       </v-btn>
@@ -41,6 +51,9 @@
             <template slot="items" slot-scope="props">
               <td>{{ props.item['ticker'] }}</td>
               <td class="justify-center layout px-0">
+                <v-btn icon @click="favourite(props.item)">
+                  <v-icon color="orange">{{ props.item.star === 1 ? 'star' : 'star_border' }}</v-icon>
+                </v-btn>
                 <v-btn icon @click="fundamentus(props.item)">
                   <v-icon color="teal">link</v-icon>
                 </v-btn>
@@ -65,6 +78,10 @@
               <td class="text-xs-center" :style="props.item['P/L'] < 15 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/L'] | formatNumber }}</td>
               <td class="text-xs-center">{{ props.item['PSR'] | formatNumber }}</td>
               <td class="text-xs-center" :style="props.item['Pat.Liq'] > 2000 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Pat.Liq'] | formatNumber }}</td>
+              <td class="text-xs-center">
+                <v-icon color="green" v-if="updated(props.item)">cloud_done</v-icon>
+                <v-icon color="red" v-if="!updated(props.item)">cloud_off</v-icon>
+              </td>
             </template>
             <v-alert slot="no-results" :value="true" color="error" icon="warning">
               Sua busca por "{{ search }}" não retornou resultados.
@@ -146,9 +163,11 @@ export default {
         { text: 'P/EBIT', align: 'center', value: 'P/EBIT' },
         { text: 'P/L', align: 'center', value: 'P/L' },
         { text: 'PSR', align: 'center', value: 'PSR' },
-        { text: 'Patr. Líquido (R$)', align: 'center', value: 'Pat.Liq' }
+        { text: 'Patr. Líquido (R$)', align: 'center', value: 'Pat.Liq' },
+        { text: 'Status', value: 'updated', sortable: false }
       ],
-      synchronized: 0
+      synchronized: 0,
+      starred: false
     }
   },
   mounted () {
@@ -162,10 +181,16 @@ export default {
   },
   methods: {
     refresh () {
-      this.$db.stock
-        .where('active').equals(1)
-        .reverse().sortBy('score')
-        .then(stocks => { this.stocks = stocks })
+      if (this.starred) {
+        this.$db.stock
+          .where('star').equals(1)
+          .reverse().sortBy('score')
+          .then(stocks => { this.stocks = stocks })
+      } else {
+        this.$db.stock
+          .reverse().sortBy('score')
+          .then(stocks => { this.stocks = stocks })
+      }
     },
     sync () {
       this.wait = true
@@ -204,7 +229,7 @@ export default {
 
           console.log('#3 - Saving all items getted from server.')
 
-          var toNumber = function (str) {
+          var number = function (str) {
             str = str.toString().replace(/[^\d,.-]/g, '')
             str = str.toString().replace('.', '')
             str = str.toString().replace(',', '.')
@@ -218,12 +243,12 @@ export default {
 
               for (var p in item) {
                 if (item.hasOwnProperty(p)) {
-                  item[p] = toNumber(item[p])
+                  item[p] = number(item[p])
                 }
               }
 
               item.ticker = t
-              item.active = 1
+              item.updated = timestamp.toDate(now)
 
               var score = 0
 
@@ -243,7 +268,15 @@ export default {
 
               item.score = score
 
-              self.$db.stock.put(item)
+              self.$db.stock
+                .update(item.ticker, item)
+                .then(function (updated) {
+                  if (!updated) {
+                    item.star = 0
+
+                    self.$db.stock.put(item)
+                  }
+                })
             })
           }).then(result => {
             console.log('#4 - All done! Updating control variables: ' + timestamp.toDate(now))
@@ -299,7 +332,22 @@ export default {
       */
     },
     fundamentus (stock) {
-      window.location = 'http://www.fundamentus.com.br/detalhes.php?papel=' + stock.ticker
+      window.open('http://www.fundamentus.com.br/detalhes.php?papel=' + stock.ticker)
+    },
+    favourites () {
+      this.starred = !this.starred
+
+      this.refresh()
+    },
+    favourite (stock) {
+      stock.star = stock.star === 1 ? 0 : 1
+
+      this.$db.stock.where('ticker')
+        .equals(stock.ticker)
+        .modify(stock)
+    },
+    updated (stock) {
+      return this.synchronized === timestamp.fromDate(stock.updated)
     }
   },
   filters: {
