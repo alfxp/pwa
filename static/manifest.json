@@ -418,7 +418,7 @@
   ],
   "start_url": "/",
   "display": "fullscreen",
-  "background_color": "transparent",
+  "background_color": "#FFBB00",
   "theme_color": "#0085AF",
   "orientation": "portrait"
 }

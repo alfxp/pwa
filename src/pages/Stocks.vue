@@ -34,77 +34,73 @@
 
     <v-content>
 
-      </v-container>
+      <v-card>
+        <v-data-table
+          :disable-initial-sort="true"
+          :must-sort="true"
+          :headers="headers"
+          :items="stocks"
+          :search="search"
+          :rows-per-page-items="[50,100,{ 'text': 'Todos', 'value': -1}]"
+          item-key="ticker"
+          rows-per-page-text="Por página:"
+          no-data-text="Os dados não foram carregados!"
+        >
+          <template slot="items" slot-scope="props">
+            <td>{{ props.item['ticker'] }}</td>
+            <td class="justify-center layout px-0">
+              <v-btn icon @click="favourite(props.item)">
+                <v-icon color="orange">{{ props.item.star === 1 ? 'star' : 'star_border' }}</v-icon>
+              </v-btn>
+              <v-btn icon @click="fundamentus(props.item)">
+                <v-icon color="teal">link</v-icon>
+              </v-btn>
+            </td>
+            <td class="text-xs-center" style="font-weight: bold; color: #FFF;" :style="props.item['score'] > 7 ? 'background-color: #1B5E20;' : (props.item['score'] < 6 ? 'background-color: #E53935;' : 'background-color: #F9A825')">{{ props.item['score'] }}</td>
+            <td class="text-xs-center">{{ props.item['cotacao'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['DY'] > 2.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['DY'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['P/VP'] < 2 && props.item['P/VP'] > 0.75 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/VP'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Cresc.5a'] > 5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Cresc.5a'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Div.Brut/Pat.'] < 0.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Div.Brut/Pat.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['EBITDA'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['EV/EBIT'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['ROE'] > 20 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['ROE'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['ROIC'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['Liq.2m.'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Liq.Corr.'] > 1.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Liq.Corr.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['Mrg.Liq.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/Ativ.Circ.Liq.'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/Ativo'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/Cap.Giro'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['P/EBIT'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['P/L'] < 15 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/L'] | formatNumber }}</td>
+            <td class="text-xs-center">{{ props.item['PSR'] | formatNumber }}</td>
+            <td class="text-xs-center" :style="props.item['Pat.Liq'] > 2000 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Pat.Liq'] | formatNumber }}</td>
+            <td class="text-xs-center">
+              <v-icon color="green" v-if="updated(props.item)">cloud_done</v-icon>
+              <v-icon color="red" v-if="!updated(props.item)">cloud_off</v-icon>
+            </td>
+          </template>
+          <v-alert slot="no-results" :value="true" color="error" icon="warning">
+            Sua busca por "{{ search }}" não retornou resultados.
+          </v-alert>
+        </v-data-table>
+      </v-card>
 
+      <confirm-wrapper ref="confirm" />
+
+      <message-wrapper ref="message" />
+
+      <v-dialog v-model="wait" persistent max-width="300px">
         <v-card>
-          <v-data-table
-            :disable-initial-sort="true"
-            :must-sort="true"
-            :headers="headers"
-            :items="stocks"
-            :search="search"
-            :rows-per-page-items="[50,100,{ 'text': 'Todos', 'value': -1}]"
-            item-key="ticker"
-            rows-per-page-text="Por página:"
-            no-data-text="Os dados não foram carregados!"
-          >
-            <template slot="items" slot-scope="props">
-              <td>{{ props.item['ticker'] }}</td>
-              <td class="justify-center layout px-0">
-                <v-btn icon @click="favourite(props.item)">
-                  <v-icon color="orange">{{ props.item.star === 1 ? 'star' : 'star_border' }}</v-icon>
-                </v-btn>
-                <v-btn icon @click="fundamentus(props.item)">
-                  <v-icon color="teal">link</v-icon>
-                </v-btn>
-              </td>
-              <td class="text-xs-center" style="font-weight: bold; color: #FFF;" :style="props.item['score'] > 7 ? 'background-color: #1B5E20;' : (props.item['score'] < 6 ? 'background-color: #E53935;' : 'background-color: #F9A825')">{{ props.item['score'] }}</td>
-              <td class="text-xs-center">{{ props.item['cotacao'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['DY'] > 2.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['DY'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['P/VP'] < 2 && props.item['P/VP'] > 0.75 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/VP'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['Cresc.5a'] > 5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Cresc.5a'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['Div.Brut/Pat.'] < 0.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Div.Brut/Pat.'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['EBITDA'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['EV/EBIT'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['ROE'] > 20 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['ROE'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['ROIC'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['Liq.2m.'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['Liq.Corr.'] > 1.5 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Liq.Corr.'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['Mrg.Liq.'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['P/Ativ.Circ.Liq.'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['P/Ativo'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['P/Cap.Giro'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['P/EBIT'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['P/L'] < 15 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['P/L'] | formatNumber }}</td>
-              <td class="text-xs-center">{{ props.item['PSR'] | formatNumber }}</td>
-              <td class="text-xs-center" :style="props.item['Pat.Liq'] > 2000 ? 'background-color: #C8E6C9;' : 'background-color: #FFCDD2;'">{{ props.item['Pat.Liq'] | formatNumber }}</td>
-              <td class="text-xs-center">
-                <v-icon color="green" v-if="updated(props.item)">cloud_done</v-icon>
-                <v-icon color="red" v-if="!updated(props.item)">cloud_off</v-icon>
-              </td>
-            </template>
-            <v-alert slot="no-results" :value="true" color="error" icon="warning">
-              Sua busca por "{{ search }}" não retornou resultados.
-            </v-alert>
-          </v-data-table>
+          <v-card-text style="text-align: center;">
+            <v-progress-circular :size="100" :width="15" :rotate="360" :value="progress" color="teal">
+              {{ progress }}%
+            </v-progress-circular>
+          </v-card-text>
+          <v-card-title class="headline" block style="text-align: center;">Sincronizando... por favor, aguarde!</v-card-title>
         </v-card>
-
-        <confirm-wrapper ref="confirm" />
-
-        <message-wrapper ref="message" />
-
-        <v-dialog v-model="wait" persistent max-width="300px">
-          <v-card>
-            <v-card-text style="text-align: center;">
-              <v-progress-circular :size="100" :width="15" :rotate="360" :value="progress" color="teal">
-                {{ progress }}%
-              </v-progress-circular>
-            </v-card-text>
-            <v-card-title class="headline" block style="text-align: center;">Sincronizando... por favor, aguarde!</v-card-title>
-          </v-card>
-        </v-dialog>
-
-      </v-container>
+      </v-dialog>
 
     </v-content>
 
